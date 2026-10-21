@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>QuizBlitz — American Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0F1E;--sfc:#131929;--sfc2:#1B2336;--sfc3:#212E47;
+  --acc:#F59E0B;--acc-g:rgba(245,158,11,.22);
+  --ok:#22C55E;--ok-bg:rgba(34,197,94,.12);
+  --err:#EF4444;--err-bg:rgba(239,68,68,.12);
+  --tx:#F1F5F9;--tx2:#94A3B8;--tx3:#64748B;
+  --bdr:rgba(255,255,255,.07);
+  --r:16px;--r2:10px;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+body{display:flex;flex-direction:column;min-height:100%;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.app{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.screen{display:none;flex:1;flex-direction:column;overflow-y:auto}
+.screen.active{display:flex}
+
+/* AD BANNER */
+.ad{flex-shrink:0;background:#0A0D1A;border-top:1px solid var(--bdr);text-align:center;padding:10px 16px;font-size:11px;color:var(--tx3);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
+.ad span{border:1px dashed rgba(255,255,255,.15);padding:4px 16px;border-radius:4px;letter-spacing:.3px}
+
+/* ── WELCOME ── */
+.welcome{align-items:center;justify-content:center;padding:40px 24px 32px;gap:24px;text-align:center}
+.logo{width:70px;height:70px;background:var(--acc);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto;box-shadow:0 0 48px var(--acc-g)}
+h1.wtitle{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(40px,9vw,60px);line-height:1;letter-spacing:-1.5px}
+h1.wtitle em{font-style:normal;color:var(--acc)}
+.wsub{font-size:15px;color:var(--tx2);max-width:270px;line-height:1.6}
+.chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.chip{background:var(--sfc2);border:1px solid var(--bdr);border-radius:100px;padding:5px 13px;font-size:12px;color:var(--tx2)}
+.chip strong{color:var(--acc);font-weight:600}
+.btn{background:var(--acc);color:#080C18;border:none;border-radius:var(--r);padding:15px 28px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;width:100%;max-width:320px;transition:transform .1s,box-shadow .2s}
+.btn:hover{box-shadow:0 8px 28px var(--acc-g);transform:translateY(-1px)}
+.btn:active{transform:scale(.97)}
+.btn2{background:transparent;color:var(--tx2);border:1px solid var(--bdr);border-radius:var(--r);padding:13px 28px;font-family:'Inter',sans-serif;font-size:15px;font-weight:500;cursor:pointer;width:100%;max-width:320px;transition:border-color .2s,color .2s}
+.btn2:hover{border-color:rgba(255,255,255,.25);color:var(--tx)}
+.btn:focus-visible,.btn2:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* ── CATEGORY ── */
+.cat-screen{padding:24px;gap:18px}
+.hdr{display:flex;align-items:center;gap:12px}
+.back{width:40px;height:40px;border-radius:12px;background:var(--sfc2);border:1px solid var(--bdr);color:var(--tx);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.back:hover{background:var(--sfc3)}
+.htitle{font-family:'Syne',sans-serif;font-weight:700;font-size:22px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(min-width:500px){.grid{grid-template-columns:repeat(3,1fr)}}
+.ccard{background:var(--sfc);border:1px solid var(--bdr);border-radius:var(--r);padding:18px 14px;cursor:pointer;text-align:left;transition:transform .15s,border-color .2s,box-shadow .2s;color:var(--tx)}
+.ccard:hover{transform:translateY(-3px);border-color:var(--cc,var(--acc));box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.ccard:active{transform:scale(.97)}
+.cem{font-size:26px;margin-bottom:8px}
+.cname{font-weight:600;font-size:13px}
+.ccnt{font-size:11px;color:var(--tx2);margin-top:2px}
+.cdot{width:5px;height:5px;border-radius:50%;margin-top:9px}
+.rbtn{background:var(--sfc);border:1px solid var(--bdr);border-radius:var(--r);padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:border-color .2s,transform .15s;color:var(--tx)}
+.rbtn:hover{border-color:var(--acc);transform:translateY(-1px)}
+.rbtn strong{display:block;font-size:14px;font-weight:600;text-align:left}
+.rbtn span{font-size:11px;color:var(--tx2);text-align:left;display:block;margin-top:1px}
+
+/* ── QUIZ ── */
+.quiz{padding:18px 20px 24px;gap:14px;max-width:600px;width:100%;margin:0 auto}
+.qtop{display:flex;align-items:center;justify-content:space-between}
+.qdots{display:flex;gap:4px}
+.qdot{height:3px;border-radius:2px;background:var(--sfc2);transition:background .3s;flex:1}
+.qdot.ok{background:var(--ok)}
+.qdot.fail{background:var(--err)}
+.qdot.cur{background:var(--acc);animation:pulse .9s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.qscore{font-family:'Syne',sans-serif;font-weight:700;font-size:17px;color:var(--acc);margin-left:12px;white-space:nowrap}
+.timer-wrap{display:flex;justify-content:center}
+.timer-svg{transform:rotate(-90deg)}
+.tbg{fill:none;stroke:var(--sfc2);stroke-width:3}
+.tring{fill:none;stroke:var(--acc);stroke-width:3;stroke-linecap:round;transition:stroke-dashoffset 1s linear,stroke .4s}
+.tnum{font-family:'Syne',sans-serif;font-weight:700;font-size:14px;fill:var(--tx)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--sfc2);border-radius:100px;padding:4px 12px 4px 8px;font-size:11px;color:var(--tx2);font-weight:500}
+.bdot{width:5px;height:5px;border-radius:50%}
+.qcard{background:var(--sfc);border:1px solid var(--bdr);border-radius:var(--r);padding:22px 20px}
+.qnum{font-size:11px;color:var(--tx3);font-weight:500;margin:8px 0 10px}
+.qtext{font-size:clamp(15px,4vw,19px);font-weight:500;line-height:1.6}
+.opts{display:flex;flex-direction:column;gap:9px}
+.opt{background:var(--sfc);border:1px solid var(--bdr);border-radius:var(--r2);padding:13px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;text-align:left;width:100%;transition:background .12s,border-color .12s,transform .1s;color:var(--tx);font-family:'Inter',sans-serif;font-size:14px;line-height:1.4}
+.opt:hover:not(:disabled){background:var(--sfc3);border-color:rgba(245,158,11,.35);transform:translateX(3px)}
+.opt:disabled{cursor:default}
+.oletter{width:26px;height:26px;min-width:26px;border-radius:7px;background:var(--sfc2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--tx2);transition:background .12s,color .12s}
+.opt.ok{background:var(--ok-bg);border-color:var(--ok);animation:popin .22s ease}
+.opt.ok .oletter{background:var(--ok);color:#fff}
+.opt.fail{background:var(--err-bg);border-color:var(--err);animation:jolt .25s ease}
+.opt.fail .oletter{background:var(--err);color:#fff}
+@keyframes popin{0%{transform:scale(1)}40%{transform:scale(1.02)}100%{transform:scale(1)}}
+@keyframes jolt{0%,100%{transform:translateX(0)}30%{transform:translateX(-5px)}70%{transform:translateX(5px)}}
+.fb{border-radius:var(--r2);padding:11px 14px;display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(5px);transition:opacity .25s,transform .25s;font-size:13px;font-weight:500}
+.fb.show{opacity:1;transform:translateY(0)}
+.fb.ok-fb{background:var(--ok-bg);color:var(--ok);border:1px solid rgba(34,197,94,.2)}
+.fb.fail-fb{background:var(--err-bg);color:var(--err);border:1px solid rgba(239,68,68,.2)}
+.nxt{background:var(--acc);color:#080C18;border:none;border-radius:var(--r);padding:15px;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;width:100%;opacity:0;transition:opacity .3s,transform .1s;pointer-events:none}
+.nxt.show{opacity:1;pointer-events:all}
+.nxt:active{transform:scale(.98)}
+
+/* ── RESULTS ── */
+.results{padding:28px 24px;gap:20px;align-items:center;justify-content:center}
+.trophy{font-size:64px;text-align:center;line-height:1}
+.bigscore{text-align:center}
+.snum{font-family:'Syne',sans-serif;font-weight:800;font-size:clamp(52px,14vw,72px);color:var(--acc);line-height:1}
+.slbl{font-size:13px;color:var(--tx2);margin-top:4px}
+.grade{display:inline-block;font-family:'Syne',sans-serif;font-weight:800;font-size:26px;padding:7px 24px;border-radius:100px}
+.rstats{background:var(--sfc);border:1px solid var(--bdr);border-radius:var(--r);padding:20px 16px;width:100%;max-width:340px;display:flex}
+.si{flex:1;text-align:center}
+.si+.si{border-left:1px solid var(--bdr)}
+.sv{font-family:'Syne',sans-serif;font-weight:700;font-size:20px}
+.sl{font-size:10px;color:var(--tx2);margin-top:3px;letter-spacing:.2px}
+.rbtns{display:flex;flex-direction:column;gap:10px;width:100%;max-width:340px}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-12px);background:var(--acc);color:#080C18;border-radius:100px;padding:7px 20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;z-index:50;white-space:nowrap;box-shadow:0 4px 16px var(--acc-g)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="app">
+
+<!-- WELCOME -->
+<div class="screen active welcome" id="s0">
+  <div class="logo">⚡</div>
+  <div>
+    <h1 class="wtitle">Quiz<em>Blitz</em></h1>
+    <p class="wsub">American trivia for sharp minds. How much do you really know?</p>
+  </div>
+  <div class="chips">
+    <div class="chip"><strong>6</strong> categories</div>
+    <div class="chip"><strong>48</strong> questions</div>
+    <div class="chip"><strong>15s</strong> timer</div>
+  </div>
+  <button class="btn" onclick="go('s1')">Choose Category</button>
+  <button class="btn2" onclick="startRandom()">🎲 Random Mix</button>
+</div>
+
+<!-- CATEGORY -->
+<div class="screen cat-screen" id="s1">
+  <div class="hdr">
+    <button class="back" onclick="go('s0')" aria-label="Back">←</button>
+    <h2 class="htitle">Pick a Category</h2>
+  </div>
+  <div class="grid" id="catGrid"></div>
+  <button class="rbtn" onclick="startRandom()">
+    <span style="font-size:28px;line-height:1">🎲</span>
+    <div><strong>Random Mix</strong><span>All 6 categories shuffled</span></div>
+  </button>
+</div>
+
+<!-- QUIZ -->
+<div class="screen quiz" id="s2">
+  <div class="qtop">
+    <div class="qdots" id="dots"></div>
+    <div class="qscore" id="qscore">0</div>
+  </div>
+  <div class="timer-wrap">
+    <svg class="timer-svg" width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
+      <circle class="tbg" cx="29" cy="29" r="24"/>
+      <circle class="tring" id="tring" cx="29" cy="29" r="24" stroke-dasharray="150.8" stroke-dashoffset="0"/>
+      <text class="tnum" id="tnum" x="29" y="34.5" text-anchor="middle" transform="rotate(90,29,29)">15</text>
+    </svg>
+  </div>
+  <div class="qcard">
+    <div class="badge"><span class="bdot" id="bdot"></span><span id="blbl">—</span></div>
+    <div class="qnum" id="qnum">Question 1 of 10</div>
+    <div class="qtext" id="qtxt"></div>
+  </div>
+  <div class="opts" id="opts"></div>
+  <div class="fb" id="fb" role="status"><span id="fbic">✓</span> <span id="fbtx"></span></div>
+  <button class="nxt" id="nxt" onclick="next()">Next Question →</button>
+</div>
+
+<!-- RESULTS -->
+<div class="screen results" id="s3">
+  <div class="trophy" id="rtrophy" aria-hidden="true">🏆</div>
+  <div class="bigscore">
+    <div class="snum" id="rscore">0</div>
+    <div class="slbl">Final Score</div>
+  </div>
+  <div class="grade" id="rgrade">A+</div>
+  <div class="rstats">
+    <div class="si"><div class="sv" id="rcorrect">0</div><div class="sl">Correct</div></div>
+    <div class="si"><div class="sv" id="racc">0%</div><div class="sl">Accuracy</div></div>
+    <div class="si"><div class="sv" id="rstreak">0</div><div class="sl">Best Streak</div></div>
+  </div>
+  <div class="rbtns">
+    <button class="btn" onclick="playAgain()">Play Again</button>
+    <button class="btn2" onclick="go('s1')">New Category</button>
+    <button class="btn2" onclick="go('s0')">Home</button>
+  </div>
+</div>
+
+</div><!-- /app -->
+<div class="ad" role="complementary" aria-label="Advertisement space">
+  <span>📢 Ad Space — Google AdSense Ready</span>
+</div>
+
+<script>
+/* ══ QUESTION BANK ══ */
+const DB={
+  sports:{name:"Sports",emoji:"🏈",color:"#3B82F6",qs:[
+    {q:"How many NBA championships did Michael Jordan win with the Chicago Bulls?",o:["4","5","6","7"],a:2},
+    {q:"Which NHL team calls Toronto, Canada its home?",o:["Montreal Canadiens","Vancouver Canucks","Ottawa Senators","Toronto Maple Leafs"],a:3},
+    {q:"What jersey number did Wayne Gretzky wear — retired across the entire NHL?",o:["9","66","88","99"],a:3},
+    {q:"The Boston Red Sox ended their famous 86-year drought with a World Series win in:",o:["2000","2002","2004","2006"],a:2},
+    {q:"Tom Brady retired in 2023 holding the NFL record for career passing touchdowns. How many?",o:["517","571","649","702"],a:2},
+    {q:"Which US city hosts the NBA team known as the '76ers'?",o:["Philadelphia","Portland","Denver","Cleveland"],a:0},
+    {q:"The Stanley Cup is the championship trophy for which sport?",o:["Basketball","Baseball","Ice Hockey","Football"],a:2},
+    {q:"Who holds the MLB record for most career hits (4,256)?",o:["Babe Ruth","Ty Cobb","Hank Aaron","Pete Rose"],a:3},
+  ]},
+  history:{name:"US History",emoji:"🇺🇸",color:"#8B5CF6",qs:[
+    {q:"In what year did the United States declare independence from Britain?",o:["1774","1775","1776","1777"],a:2},
+    {q:"Who was the primary author of the Declaration of Independence?",o:["John Adams","Benjamin Franklin","George Washington","Thomas Jefferson"],a:3},
+    {q:"The American Civil War ended in what year?",o:["1863","1864","1865","1866"],a:2},
+    {q:"What was the first state to ratify the US Constitution?",o:["Virginia","Pennsylvania","Massachusetts","Delaware"],a:3},
+    {q:"Who was the 16th President of the United States?",o:["Ulysses Grant","Andrew Jackson","Abraham Lincoln","James Polk"],a:2},
+    {q:"The attack on Pearl Harbor, drawing the US into WWII, happened in:",o:["1939","1940","1941","1942"],a:2},
+    {q:"Which constitutional amendment officially abolished slavery?",o:["10th Amendment","13th Amendment","14th Amendment","15th Amendment"],a:1},
+    {q:"In what city was the Declaration of Independence signed?",o:["Boston","New York","Washington D.C.","Philadelphia"],a:3},
+  ]},
+  popculture:{name:"Pop Culture",emoji:"🎬",color:"#EC4899",qs:[
+    {q:"Which fictional paper company is featured in the TV show 'The Office'?",o:["Staples","Dunder Mifflin","Paper Source","Quill Corp"],a:1},
+    {q:"What streaming service produced 'Stranger Things'?",o:["Hulu","HBO Max","Disney+","Netflix"],a:3},
+    {q:"What is Walter White's drug kingpin alias in 'Breaking Bad'?",o:["Vito","The Cook","Heisenberg","El Jefe"],a:2},
+    {q:"The Marvel Cinematic Universe began with which 2008 film?",o:["Thor","Iron Man","Captain America","The Incredible Hulk"],a:1},
+    {q:"Taylor Swift was born in which US state?",o:["Tennessee","Georgia","Texas","Pennsylvania"],a:3},
+    {q:"Which TV show centers on the Dutton family and their Montana ranch?",o:["Longmire","Justified","Deadwood","Yellowstone"],a:3},
+    {q:"'The Dark Knight' (2008) was directed by which filmmaker?",o:["Zack Snyder","Steven Spielberg","James Cameron","Christopher Nolan"],a:3},
+    {q:"Which artist released the iconic album 'Thriller' in 1982?",o:["Prince","Whitney Houston","Michael Jackson","Elvis Presley"],a:2},
+  ]},
+  geography:{name:"Geography",emoji:"🌎",color:"#10B981",qs:[
+    {q:"What is the capital city of Canada?",o:["Toronto","Vancouver","Montreal","Ottawa"],a:3},
+    {q:"Which US state is the largest by land area?",o:["Texas","Montana","California","Alaska"],a:3},
+    {q:"How many US states share a border with Mexico?",o:["2","3","4","5"],a:2},
+    {q:"Niagara Falls sits on the border of New York State and which Canadian province?",o:["Quebec","Manitoba","British Columbia","Ontario"],a:3},
+    {q:"Which is the smallest US state by area?",o:["Connecticut","Delaware","New Jersey","Rhode Island"],a:3},
+    {q:"Mount Rushmore is carved into a mountain in which US state?",o:["Wyoming","Montana","North Dakota","South Dakota"],a:3},
+    {q:"Which US state is nicknamed 'The Sunshine State'?",o:["California","Arizona","Hawaii","Florida"],a:3},
+    {q:"The Mississippi River flows into which body of water?",o:["Atlantic Ocean","Caribbean Sea","Gulf of St. Lawrence","Gulf of Mexico"],a:3},
+  ]},
+  science:{name:"Science",emoji:"🧪",color:"#06B6D4",qs:[
+    {q:"What does DNA stand for?",o:["Dynamic Nucleic Atom","Deoxyribonucleic Acid","Dual Nitrogen Array","Digital Nucleotide Arch"],a:1},
+    {q:"How many planets are currently recognized in our solar system?",o:["7","8","9","10"],a:1},
+    {q:"What is the chemical symbol for Gold?",o:["Go","Gd","Ag","Au"],a:3},
+    {q:"Which gas makes up the largest portion of Earth's atmosphere?",o:["Oxygen","Carbon Dioxide","Hydrogen","Nitrogen"],a:3},
+    {q:"What is commonly called the 'powerhouse of the cell'?",o:["Nucleus","Ribosome","Mitochondria","Golgi Body"],a:2},
+    {q:"Alexander Graham Bell is credited with inventing which device?",o:["The Light Bulb","The Radio","The Telephone","The Television"],a:2},
+    {q:"What is the atomic number of Carbon?",o:["4","6","8","12"],a:1},
+    {q:"Light travels approximately how far per second in a vacuum?",o:["30,000 km","300,000 km","3,000,000 km","30 million km"],a:1},
+  ]},
+  music:{name:"Music",emoji:"🎵",color:"#F97316",qs:[
+    {q:"Which group was Beyoncé a member of before going solo?",o:["TLC","En Vogue","Spice Girls","Destiny's Child"],a:3},
+    {q:"'Bohemian Rhapsody' is one of the most iconic songs by which band?",o:["Led Zeppelin","The Rolling Stones","The Beatles","Queen"],a:3},
+    {q:"Which rapper's legal name is Marshall Mathers?",o:["Jay-Z","Snoop Dogg","Eminem","Drake"],a:2},
+    {q:"'Born in the USA' is a classic rock anthem by which artist?",o:["Tom Petty","Bob Dylan","John Mellencamp","Bruce Springsteen"],a:3},
+    {q:"The famous music festival Coachella is held annually in which US state?",o:["Nevada","Texas","Arizona","California"],a:3},
+    {q:"Which country is superstar Justin Bieber originally from?",o:["USA","UK","Australia","Canada"],a:3},
+    {q:"The Beatles originally formed in which English city?",o:["London","Birmingham","Manchester","Liverpool"],a:3},
+    {q:"Which artist famously wore a dress made of meat at the 2010 MTV VMAs?",o:["Katy Perry","Lady Gaga","Rihanna","Nicki Minaj"],a:1},
+  ]}
+};
+
+/* ══ CONSTANTS ══ */
+const CIRC=150.8, TMAX=15;
+
+/* ══ STATE ══ */
+let G={};
+
+/* ══ INIT ══ */
+window.onload=()=>{
+  const grid=document.getElementById('catGrid');
+  Object.entries(DB).forEach(([k,c])=>{
+    const b=document.createElement('button');
+    b.className='ccard';
+    b.style.setProperty('--cc',c.color);
+    b.innerHTML=`<div class="cem">${c.emoji}</div><div class="cname">${c.name}</div><div class="ccnt">${c.qs.length} questions</div><div class="cdot" style="background:${c.color}"></div>`;
+    b.onclick=()=>startCat(k);
+    grid.appendChild(b);
+  });
+};
+
+/* ══ NAVIGATION ══ */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById(id).scrollTop=0;
+}
+
+/* ══ GAME START ══ */
+function startCat(k){
+  const c=DB[k];
+  const qs=shuffle([...c.qs]).map(q=>({...q,catColor:c.color,catName:c.name}));
+  begin(qs,c);
+}
+
+function startRandom(){
+  let pool=[];
+  Object.entries(DB).forEach(([k,c])=>c.qs.forEach(q=>pool.push({...q,catColor:c.color,catName:c.name})));
+  begin(shuffle(pool).slice(0,10),{name:"Mix",emoji:"🎲",color:"#F59E0B"});
+}
+
+function begin(qs,cat){
+  G={qs,cat,i:0,score:0,correct:0,streak:0,best:0,done:false,timer:TMAX,iv:null};
+  buildDots();
+  go('s2');
+  loadQ();
+}
+
+/* ══ DOTS ══ */
+function buildDots(){
+  const w=document.getElementById('dots');
+  w.innerHTML='';
+  G.qs.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='qdot';d.id='d'+i;
+    w.appendChild(d);
+  });
+}
+function setDot(i,cls){const d=document.getElementById('d'+i);if(d)d.className='qdot '+cls}
+
+/* ══ QUESTION ══ */
+function loadQ(){
+  const q=G.qs[G.i];
+  G.done=false; G.timer=TMAX;
+  clearInterval(G.iv);
+  document.getElementById('qnum').textContent=`Question ${G.i+1} of ${G.qs.length}`;
+  document.getElementById('qtxt').textContent=q.q;
+  document.getElementById('bdot').style.background=q.catColor||G.cat.color;
+  document.getElementById('blbl').textContent=q.catName||G.cat.name;
+  setDot(G.i,'cur');
+
+  const opts=document.getElementById('opts');
+  opts.innerHTML='';
+  ['A','B','C','D'].forEach((l,j)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.id='o'+j;
+    b.innerHTML=`<span class="oletter">${l}</span><span>${q.o[j]}</span>`;
+    b.onclick=()=>pick(j);
+    opts.appendChild(b);
+  });
+
+  hideFb();
+  const nxt=document.getElementById('nxt');
+  nxt.classList.remove('show');
+  updateRing(TMAX);
+  const ring=document.getElementById('tring');
+  ring.style.stroke='#F59E0B';
+  G.iv=setInterval(tick,1000);
+}
+
+/* ══ TIMER ══ */
+function tick(){
+  G.timer--;
+  updateRing(G.timer);
+  document.getElementById('tring').style.stroke=G.timer<=5?'#EF4444':'#F59E0B';
+  if(G.timer<=0){clearInterval(G.iv);if(!G.done)timeout();}
+}
+
+function updateRing(s){
+  document.getElementById('tring').style.strokeDashoffset=CIRC*(1-s/TMAX);
+  document.getElementById('tnum').textContent=s;
+}
+
+/* ══ ANSWER ══ */
+function timeout(){
+  G.done=true; G.streak=0;
+  const q=G.qs[G.i];
+  document.getElementById('o'+q.a).classList.add('ok');
+  disableOpts();
+  showFb(false,"⏱ Time's up! Answer: "+q.o[q.a]);
+  setDot(G.i,'fail');
+  showNxt();
+}
+
+function pick(j){
+  if(G.done)return;
+  G.done=true;
+  clearInterval(G.iv);
+  const q=G.qs[G.i];
+  const isOk=j===q.a;
+  disableOpts();
+  document.getElementById('o'+q.a).classList.add('ok');
+  if(!isOk) document.getElementById('o'+j).classList.add('fail');
+  if(isOk){
+    const spd=G.timer>10?50:G.timer>5?25:0;
+    G.score+=100+spd; G.correct++; G.streak++;
+    G.best=Math.max(G.best,G.streak);
+    if(G.streak===3) showToast("🔥 3 in a row!");
+    if(G.streak===5) showToast("🔥🔥 5 in a row! You're on fire!");
+    if(G.streak===7) showToast("🏆 7 in a row! Unstoppable!");
+    showFb(true,`Correct!${spd?` +${100+spd} pts (speed bonus)`:' +100 pts'}`);
+    setDot(G.i,'ok');
+  }else{
+    G.streak=0;
+    showFb(false,"Wrong — correct answer: "+q.o[q.a]);
+    setDot(G.i,'fail');
+  }
+  document.getElementById('qscore').textContent=G.score.toLocaleString();
+  showNxt();
+}
+
+function disableOpts(){
+  document.querySelectorAll('.opt').forEach(b=>b.disabled=true);
+}
+
+/* ══ FEEDBACK ══ */
+function showFb(ok,msg){
+  const f=document.getElementById('fb');
+  f.className='fb '+(ok?'ok-fb':'fail-fb');
+  document.getElementById('fbic').textContent=ok?'✓':'✗';
+  document.getElementById('fbtx').textContent=msg;
+  requestAnimationFrame(()=>f.classList.add('show'));
+}
+function hideFb(){document.getElementById('fb').className='fb'}
+
+function showNxt(){
+  const b=document.getElementById('nxt');
+  b.textContent=G.i>=G.qs.length-1?'See Results →':'Next Question →';
+  setTimeout(()=>b.classList.add('show'),380);
+}
+
+/* ══ NEXT / RESULTS ══ */
+function next(){
+  G.i++;
+  if(G.i>=G.qs.length) showResults(); else loadQ();
+}
+
+function showResults(){
+  const pct=G.correct/G.qs.length;
+  const acc=Math.round(pct*100);
+  const [grade,trophy,gc]=
+    pct>=.9?['A+','🏆','#F59E0B']:
+    pct>=.8?['A','🥇','#FBBF24']:
+    pct>=.7?['B','🥈','#94A3B8']:
+    pct>=.6?['C','🥉','#B87333']:
+            ['D','📚','#6B7280'];
+  document.getElementById('rtrophy').textContent=trophy;
+  document.getElementById('rscore').textContent=G.score.toLocaleString();
+  const gb=document.getElementById('rgrade');
+  gb.textContent=grade;
+  gb.style.cssText=`background:${gc}18;color:${gc};border:1px solid ${gc}38`;
+  document.getElementById('rcorrect').textContent=`${G.correct}/${G.qs.length}`;
+  document.getElementById('racc').textContent=`${acc}%`;
+  document.getElementById('rstreak').textContent=G.best;
+  go('s3');
+}
+
+function playAgain(){
+  if(G.cat&&G.cat.name!=='Mix'){
+    const k=Object.keys(DB).find(k=>DB[k].name===G.cat.name);
+    if(k){startCat(k);return;}
+  }
+  startRandom();
+}
+
+/* ══ TOAST ══ */
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._tid);
+  t._tid=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ══ KEYBOARD ══ */
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('s2').classList.contains('active'))return;
+  const map={a:0,A:0,'1':0,b:1,B:1,'2':1,c:2,C:2,'3':2,d:3,D:3,'4':3};
+  if(e.key in map){e.preventDefault();pick(map[e.key]);}
+  if((e.key==='Enter'||e.key===' ')&&document.getElementById('nxt').classList.contains('show')){
+    e.preventDefault();next();
+  }
+});
+</script>
+</body>
+</html>
